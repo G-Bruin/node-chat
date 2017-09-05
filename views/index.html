@@ -7,6 +7,7 @@
     <link rel="icon" href="favicon.png" type="image/x-icon">
     <link type="text/css" rel="stylesheet" href="css/style.css">
     <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.2/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -74,6 +75,13 @@
 </div>
 <script type="text/javascript">
     $(document).ready(function(e) {
+
+        var socket = io.connect(':3000');
+        //私人频道
+        socket.on('personal', function(data) {
+            console.log(data)
+        })
+
         $('#message_box').scrollTop($("#message_box")[0].scrollHeight + 20);
         $('.uname').hover(
                 function(){

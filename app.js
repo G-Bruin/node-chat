@@ -5,6 +5,10 @@ var express = require('express');
 var app = express();
 var path = require('path');
 var http = require('http');
+var bodyParser = require('body-parser');
+// 创建 application/x-www-form-urlencoded 编码解析
+var urlencodedParser = bodyParser.urlencoded({ extended: false })
+
 var LocalStorage = require('node-localstorage').LocalStorage;
 localStorage = new LocalStorage('./scratch');
 
@@ -21,8 +25,7 @@ app.get('/',function(req, res){
     }
 });
 
-app.post('/', function (req, res) {
-    console.log(req.body.first_name);
+app.post('/', urlencodedParser, function (req, res) {
     if (users[req.body.first_name]) {
         //存在，则不允许登陆
         res.redirect('/signin');
@@ -33,13 +36,16 @@ app.post('/', function (req, res) {
     }
 });
 
-
-
-var server = app.listen(3000, function () {
-
-    var host = server.address().address
-    var port = server.address().port
-
-    console.log("应用实例，访问地址为 http://%s:%s", host, port)
-
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+io.sockets.on('connection', function (socket) {
+    console.log('aaaa');
+    socket.on('disconnect', function () {
+        console.log('user disconnect')
+    })
 })
+
+
+server.listen(3000, function(){
+    console.log('Express server listening on port 3000 ');
+});
