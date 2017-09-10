@@ -7,6 +7,7 @@
     <link rel="icon" href="favicon.png" type="image/x-icon">
     <link type="text/css" rel="stylesheet" href="css/style.css">
     <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery.cookie.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.2/socket.io.min.js"></script>
 </head>
 
@@ -15,12 +16,12 @@
     <div class="chat_top fn-clear">
         <!--<div class="logo"><img src="images/logo.png" width="190" height="60"  alt=""/></div>-->
         <div class="uinfo fn-clear">
-            <div class="uface"><img src="images/hetu.jpg" width="40" height="40"  alt=""/></div>
-            <div class="uname">
-                河图<i class="fontico down"></i>
+            <div class="uface"><img class="user_avatar" src="images/hetu.jpg" width="40" height="40"  alt=""/></div>
+            <div class="uname " >
+                <span class="user_name"></span><i class="fontico down"></i>
                 <ul class="managerbox">
-                    <li><a href="#"><i class="fontico lock"></i>修改密码</a></li>
-                    <li><a href="#"><i class="fontico logout"></i>退出登录</a></li>
+                    <!--<li><a href="#"><i class="fontico lock"></i>修改密码</a></li>-->
+                    <!--<li><a onclick="logout()"><i class="fontico logout"></i>退出登录</a></li>-->
                 </ul>
             </div>
         </div>
@@ -28,121 +29,116 @@
     <div class="chat_message fn-clear">
         <div class="chat_left">
             <div class="message_box" id="message_box">
-                <div class="msg_item fn-clear">
-                    <div class="uface"><img src="images/53f44283a4347.jpg" width="40" height="40"  alt=""/></div>
-                    <div class="item_right">
-                        <div class="msg">近日，TIOBE发布了2014年9月的编程语言排行榜，Java、C++跌至历史最低点，前三名则没有变化，依旧是C、Java、Objective-C。</div>
-                        <div class="name_time">猫猫 · 3分钟前</div>
-                    </div>
-                </div>
 
-                <div class="msg_item fn-clear">
-                    <div class="uface"><img src="images/53f442834079a.jpg" width="40" height="40"  alt=""/></div>
-                    <div class="item_right">
-                        <div class="msg">(Visual) FoxPro, 4th Dimension/4D, Alice, APL, Arc, Automator, Awk, Bash, bc, Bourne shell, C++CLI, CFML, cg, CL (OS/400), Clean, Clojure, Emacs Lisp, Factor, Forth, Hack, Icon, Inform, Io, Ioke, J, JScript.NET, LabVIEW, LiveCode, M4, Magic, Max/MSP, Modula-2, Moto, NATURAL, OCaml, OpenCL, Oz, PILOT, Programming Without Coding Technology, Prolog, Pure Data, Q, RPG (OS/400), S, Smalltalk, SPARK, Standard ML, TOM, VBScript, Z shell</div>
-                        <div class="name_time">白猫 · 1分钟前</div>
-                    </div>
-                </div>
-
-                <div class="msg_item fn-clear">
-                    <div class="uface"><img src="images/hetu.jpg" width="40" height="40"  alt=""/></div>
-                    <div class="item_right">
-                        <div class="msg own">那个统计表也不能说明一切</div>
-                        <div class="name_time">河图 · 30秒前</div>
-                    </div>
-                </div>
             </div>
             <div class="write_box">
                 <textarea id="message" name="message" class="write_area" placeholder="说点啥吧..."></textarea>
-                <input type="hidden" name="fromname" id="fromname" value="河图" />
-                <input type="hidden" name="to_uid" id="to_uid" value="0">
                 <div class="facebox fn-clear">
                     <div class="expression"></div>
                     <div class="chat_type" id="chat_type">群聊</div>
-                    <button name="" class="sub_but">提 交</button>
+                    <button id="sendMessage"   class="sub_but">提 交</button>
                 </div>
             </div>
         </div>
         <div class="chat_right">
-            <ul class="user_list" title="双击用户私聊">
-                <li class="fn-clear selected"><em>所有用户</em></li>
-                <li class="fn-clear" data-id="1"><span><img src="images/hetu.jpg" width="30" height="30"  alt=""/></span><em>河图</em><small class="online" title="在线"></small></li>
-                <li class="fn-clear" data-id="2"><span><img src="images/53f44283a4347.jpg" width="30" height="30"  alt=""/></span><em>猫猫</em><small class="online" title="在线"></small></li>
-                <li class="fn-clear" data-id="3"><span><img src="images/53f442834079a.jpg" width="30" height="30"  alt=""/></span><em>白猫</em><small class="offline" title="离线"></small></li>
+            <ul class="user_list"  id='list' title="双击用户私聊">
+
             </ul>
         </div>
     </div>
 </div>
 <script type="text/javascript">
     $(document).ready(function(e) {
-
         var socket = io.connect(':3000');
-        //私人频道
-        socket.on('personal', function(data) {
-            console.log(data)
+        var user_info = JSON.parse($.cookie('user_info').replace('j:',''));
+        var chat = 'all';
+        $('.user_avatar').attr('src', user_info.avatar);
+        $('.user_name').html(user_info.name);
+        //发送登录提醒
+        socket.emit('online', {'user_info':user_info, 'chat':chat});
+        //获取后台推送数据提醒
+        socket.on('online', function (data) {
+            if(data.user == user_info.name) {
+                var remind = '<div class="msg_item fn-clear"><div class="uface"><img src="'+data.user.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">上线了</div><div class="name_time">'+data.user.name+'</div></div></div>'
+            } else {
+                var remind = '<div class="msg_item fn-clear"><div class="uface"><img src="'+data.user.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">进入聊天室</div><div class="name_time">'+data.user.name+'</div></div></div>'
+            }
+            $("#message_box").append(remind);
+            flushUsers(data.user_list);
         })
 
-        $('#message_box').scrollTop($("#message_box")[0].scrollHeight + 20);
-        $('.uname').hover(
-                function(){
-                    $('.managerbox').stop(true, true).slideDown(100);
-                },
-                function(){
-                    $('.managerbox').stop(true, true).slideUp(100);
+        socket.on('say', function (data) {
+            //对所有人说
+            if (data.chat == 'all') {
+                $("#message_box").append('<div class="msg_item fn-clear"><div class="uface"><img src="'+data.user_info.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">对所有人说：'+data.msg+'</div><div class="name_time">'+data.user_info.name+'</div></div></div>');
+            }
+            //对你密语
+//            if (data.chat == user_info.name) {
+//                $("#message_box").append('<div class="msg_item fn-clear"><div class="uface"><img src="'+data.user_info.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">对你'+chat+'说：'+data.msg+'</div><div class="name_time">'+data.user_info.name+'</div></div></div>');
+//            }
+        });
+
+
+        socket.on(user_info.name, function (data) {
+            $("#message_box").append('<div class="msg_item fn-clear"><div class="uface"><img src="'+data.user_info.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">对你说：'+data.msg+'</div><div class="name_time">'+data.user_info.name+'</div></div></div>');
+        })
+
+//        $('.uname').hover(
+//            function(){
+//                $('.managerbox').stop(true, true).slideDown(100);
+//            },
+//            function(){
+//                $('.managerbox').stop(true, true).slideUp(100);
+//            }
+//        );
+
+        function flushUsers(users)
+        {
+            $("#list").empty().append('<li alt="all" class="fn-clear selected"><em>所有用户</em></li>');
+            for (var i in users) {
+                $("#list").append('<li class="fn-clear" alt="'+users[i].name+'"><span><img src="'+users[i].avatar+'" width="30" height="30"  /></span><em>'+users[i].name+'</em><small class="online" title="在线"></small></li>');
+            }
+            //双击对某人聊天
+            $("#list > li").dblclick(function() {
+                if ($(this).attr('alt') != user_info.name) {
+                    chat = $(this).attr('alt');
+                    $("#list > li").removeClass('selected');
+                    $(this).addClass('selected');
+                    $("#chat_type").html( chat == "all" ? "群聊" : '私聊：'+chat);
                 }
-        );
-
-        var fromname = $('#fromname').val();
-        var to_uid   = 0; // 默认为0,表示发送给所有用户
-        var to_uname = '';
-        $('.user_list > li').dblclick(function(){
-            to_uname = $(this).find('em').text();
-            to_uid   = $(this).attr('data-id');
-            if(to_uname == fromname){
-                alert('您不能和自己聊天!');
-                return false;
-            }
-            if(to_uname == '所有用户'){
-                $("#toname").val('');
-                $('#chat_type').text('群聊');
-            }else{
-                $("#toname").val(to_uid);
-                $('#chat_type').text('您正和 ' + to_uname + ' 聊天');
-            }
-            $(this).addClass('selected').siblings().removeClass('selected');
-            $('#message').focus().attr("placeholder", "您对"+to_uname+"说：");
-        });
-
-        $('.sub_but').click(function(event){
-            sendMessage(event, fromname, to_uid, to_uname);
-        });
-
-        /*按下按钮或键盘按键*/
-        $("#message").keydown(function(event){
-            var e = window.event || event;
-            var k = e.keyCode || e.which || e.charCode;
-            //按下ctrl+enter发送消息
-            if((event.ctrlKey && (k == 13 || k == 10) )){
-                sendMessage(event, fromname, to_uid, to_uname);
-            }
-        });
-    });
-    function sendMessage(event, from_name, to_uid, to_uname){
-        var msg = $("#message").val();
-        if(to_uname != ''){
-            msg = '您对 ' + to_uname + ' 说： ' + msg;
+            });
         }
-        var htmlData =   '<div class="msg_item fn-clear">'
-                + '   <div class="uface"><img src="images/hetu.jpg" width="40" height="40"  alt=""/></div>'
-                + '   <div class="item_right">'
-                + '     <div class="msg own">' + msg + '</div>'
-                + '     <div class="name_time">' + from_name + ' · 30秒前</div>'
-                + '   </div>'
-                + '</div>';
-        $("#message_box").append(htmlData);
-        $('#message_box').scrollTop($("#message_box")[0].scrollHeight + 20);
-        $("#message").val('');
-    }
+
+        $("#sendMessage").click(function() {
+            //获取要发送的信息
+            var msg = $("#message").val();
+            if (msg == "") return;
+            if (chat == "all") {
+                $("#message_box").append('<div class="msg_item fn-clear"><div class="uface"><img src="'+user_info.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">对所有人说：'+msg+'</div><div class="name_time">'+user_info.name+'</div></div></div>');
+            } else {
+                $("#message_box").append('<div class="msg_item fn-clear"><div class="uface"><img src="'+user_info.avatar+'" width="40" height="40"  alt=""/></div><div class="item_right"><div class="msg">你对'+chat+'说：'+msg+'</div><div class="name_time">'+user_info.name+'</div></div></div>');
+
+            }
+            socket.emit('say', {user_info: user_info, chat: chat, msg: msg});
+            $("#message").val('');
+        });
+
+        socket.on('offline', function (data) {
+            //显示系统消息
+            var sys = '<div style="color:#f00">系统:' + '用户 ' + data.user.name + ' 下线了！</div>';
+            $("#message_box").append(sys + "<br/>");
+            //刷新用户在线列表
+            flushUsers(data.user_list);
+            //如果正对某人聊天，该人却下线了
+            if (data.user == chat) {
+                chat = "all";
+            }
+            //显示正在对谁说话
+            $("#chat_type").html( chat == "all" ? "群聊" : '私聊：'+chat);
+        });
+
+
+    });
 </script>
 </body>
 </html>
